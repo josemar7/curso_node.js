@@ -18,10 +18,18 @@ const errorController = require('./controllers/error');
 const bodyParser = require("body-parser");
 // const expressHbs = require('express-handlebars');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const MongoDBStore = require('connect-mongodb-session')(session);
 const mongoConnect = require('./util/database').mongoConnect;
 const User = require('./models/user');
 
+const MOGODB_URI = 'mongodb+srv://pepo:pepo@cluster0-8uuhu.mongodb.net/shop';
+
 const app = express();
+const store = new MongoDBStore({
+    uri: MOGODB_URI,
+    collection: 'sessions'
+});
 
 // app.engine('hbs', expressHbs({
 //     layoutsDir: 'views/layouts/',
@@ -36,23 +44,23 @@ app.set('views', 'views');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+    secret: 'my secret',
+    resave: false,
+    saveUninitialized: false,
+    store: store
+}));
 
 app.use((req, res, next) => {
-    // mysql
-    // User.findById(1)
-    // .then(user => {
-    //     req.user = user;
-    //     next();
-    // })
-    // .catch(err => console.log(err));
-    User.findById('5bf8875e378c651fd7559806')
+    if (!req.session.user) {
+        return next();
+    }
+    User.findById(req.session.user._id)
     .then(user => {
-        // mongodb
-        // req.user = new User(user.name, user.email, user.cart, user._id);
         req.user = user;
-        next();
+        next();    
     })
-    .catch(err => console.log(err));
+    .catch(err => console.log(err));    
 });
 
 app.use('/admin', adminRoutes);
@@ -104,7 +112,7 @@ app.use(errorController.get404);
 // });
 
 mongoose
-.connect('mongodb+srv://pepo:pepo@cluster0-8uuhu.mongodb.net/shop?retryWrites=true')
+.connect(MOGODB_URI)
 .then(result => {
     User.findOne()
     .then(user => {

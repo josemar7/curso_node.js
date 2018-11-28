@@ -460,7 +460,7 @@ exports.postOrder = (req, res, next) => {
         .populate('cart.items.productId')
         .execPopulate()
         .then(user => {            
-            user.card.items.forEach(p => {
+            user.cart.items.forEach(p => {
                 totalSum += p.quantity * p.productId.price;
             });
             const products = user.cart.items

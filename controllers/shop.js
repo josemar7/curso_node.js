@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const stripe = require("stripe")("sk_test_dAIc3W83PDpyrkS7txrOTgLm");
 
 const Product = require('../models/product');
 const Order = require('../models/order');
@@ -415,6 +416,30 @@ exports.postCartDeleteProduct = (req, res, next) => {
     });
 };
 
+exports.getCheckout = (req, res, next) => {
+    req.user
+        .populate('cart.items.productId')
+        .execPopulate()
+        .then(user => {
+            const products = user.cart.items;
+            let total = 0;
+            products.forEach(product => {
+                total += product.quantity * product.productId.price;
+            });
+            res.render("shop/checkout", {
+                path: "/checkout",
+                pageTitle: "Checkout",
+                products: products,
+                totalSum: total
+            });
+        })
+        .catch(err => {
+            const error = new Error(err);
+            error.httpStatusCode = 500;
+            return next(error);
+        });
+};
+
 // mongodb
 // exports.postOrder = (req, res, next) => {
 //   let fetchedCart;
@@ -426,25 +451,42 @@ exports.postCartDeleteProduct = (req, res, next) => {
 //     .catch(err => console.log(err));
 // };
 exports.postOrder = (req, res, next) => {
+    // Token is created using Checkout or Elements!
+    // Get the payment token ID submitted by the form:
+    const token = req.body.stripeToken; // Using Express
+    let totalSum = 0;
+    
     req.user
         .populate('cart.items.productId')
         .execPopulate()
         .then(user => {            
+            user.card.items.forEach(p => {
+                totalSum += p.quantity * p.productId.price;
+            });
             const products = user.cart.items
                 .map(i => {
                     return { quantity: i.quantity, product: { ...i.productId._doc } };
-                }); 
+                });
             const order = new Order({
                 user: {
                     email: req.user.email,
                     userId: req.user
                 },
                 products: products
-            });  
+            });
             return order.save();
         })
         .then(result => {
-            return req.user.clearCart();            
+            const charge = stripe.charges.create({
+                amount: totalSum * 100,
+                currency: 'usd',
+                description: 'Demo order',
+                source: token,
+                metadata: {
+                    order_id: result._id.toString()
+                }
+            });    
+            return req.user.clearCart();
         })
         .then(() => res.redirect("/orders"))
         .catch(err => {
@@ -498,13 +540,6 @@ exports.getOrders = (req, res, next) => {
         return next(error);
     });    
 };
-
-// exports.getCheckout = (req, res, next) => {
-//     res.render('shop/checkout', {
-//         path: '/checkout',
-//         pageTitle: 'Checkout'
-//     })
-// };
 
 exports.getInvoice = (req, res, next) => {
     const orderId = req.params.orderId;

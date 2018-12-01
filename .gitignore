@@ -9,6 +9,7 @@
 /node_modules
 
 /data
+/images
 
 # IDEs and editors
 /.idea

@@ -98,8 +98,7 @@ exports.getUser = async (req, res, next) => {
 };
 
 exports.updateUser = async (req, res, next) => {
-    const userId = req.params.userId;  
-    console.log(req.body); 
+    const userId = req.params.userId;
     const status = req.body.status;
     try {
         const user = await User.findById(userId);

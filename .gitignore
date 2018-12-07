@@ -42,3 +42,5 @@ testem.log
 Thumbs.db
 
 access.log
+server.cert
+server.key

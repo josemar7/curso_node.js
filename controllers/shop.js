@@ -75,7 +75,6 @@ exports.getProducts = (req, res, next) => {
                 previousPage: page - 1,
                 lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
             });
-            res.render()
         })
         .catch(err => {
             const error = new Error(err);
@@ -212,7 +211,6 @@ exports.getIndex = (req, res, next) => {
             previousPage: page - 1,
             lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
         });
-        res.render()
     })
     .catch(err => {
         const error = new Error(err);
